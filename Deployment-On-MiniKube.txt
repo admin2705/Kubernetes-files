@@ -1,0 +1,84 @@
+Step 1: Update and install dependencies
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl wget apt-transport-https
+
+Step 2: Install Docker:-
+sudo apt install -y docker.io
+sudo systemctl enable --now docker
+sudo usermod -aG docker $USER
+newgrp docker
+
+Step 3: Install Minikube
+curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+sudo install minikube-linux-amd64 /usr/local/bin/minikube
+minikube version
+
+Step 4: Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+kubectl version --client
+
+Step 5: Start Minikube
+minikube start --driver=docker
+
+Step 6: Create a Kubernetes Namespace
+kubectl create namespace my-app
+
+--------------------------------------------
+Step 7: Create Deployment.yml
+----------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bootstrap-app
+  namespace: my-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bootstrap-app
+  template:
+    metadata:
+      labels:
+        app: bootstrap-app
+    spec:
+      containers:
+        - name: bootstrap-app
+          image: your-dockerhub-username/bootstrap-app:latest
+          ports:
+            - containerPort: 80
+--------------------------------------------
+Step 8: Create service.yml
+--------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: bootstrap-service
+  namespace: my-app
+spec:
+  selector:
+    app: bootstrap-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: NodePort
+______________________________________________________________________________
+Step 9:Deploy the Application
+kubectl apply -f deployment.yml
+kubectl apply -f service.yml
+kubectl get pods -n my-app
+kubectl get services -n my-app
+
+kubectl port-forward -n my-app service/bootstrap-service 8080:80
+
+
+
+Step 10: Expose the Application
+minikube service bootstrap-service -n my-app --url
+
+kubectl delete namespace my-app
+minikube stop
+minikube delete
+
+
